@@ -1,0 +1,259 @@
+---
+title: "Telco Customer Churn Analysis"
+author: "MaryanneWamaitha"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+library(magrittr)
+```
+```{r}
+library(dplyr)
+```
+
+```{r}
+#Data Collection - Loading the data set
+Telco_Customer_Churn <- read.csv("D:/Projects/Telco Customer Churn/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+View(Telco_Customer_Churn)
+
+#Data Cleaning and Organization
+is.na(Telco_Customer_Churn) #To identify missing values
+Telco_Customer_Churn <- na.omit(Telco_Customer_Churn) #This omits the missing values.
+
+# DESCRIPTIVE STATISTICS
+summary(Telco_Customer_Churn)
+
+#Numerical Variables
+mean(Telco_Customer_Churn$tenure) #mean of numeric variables
+mean(Telco_Customer_Churn$MonthlyCharges)
+mean(Telco_Customer_Churn$TotalCharges) #This returns NA implying missing data
+mean(Telco_Customer_Churn$TotalCharges, na.rm = TRUE) #Omits missing data
+median(Telco_Customer_Churn$tenure) #to find the middle value, especially for data with outliers
+sd(Telco_Customer_Churn$MonthlyCharges) #To understand how spread out the charges are
+range(Telco_Customer_Churn$MonthlyCharges) #minimum and maximum values
+range(Telco_Customer_Churn$tenure)
+quantile(Telco_Customer_Churn$tenure, probs = c(0.25, 0.5, 0.75)) # identifies the distribution of customers staying
+summary(Telco_Customer_Churn$tenure)
+summary(Telco_Customer_Churn$MonthlyCharges)
+summary(Telco_Customer_Churn$TotalCharges)
+
+#Categorical Variables
+table(Telco_Customer_Churn$Contract) #identify how many customers are in specific contract duration
+table(Telco_Customer_Churn$Churn) #Identifies how many customers churn
+prop.table(table(Telco_Customer_Churn$Churn)) * 100 #percentage of churn
+
+#Cross-tabulation - to examine relationship between variables
+table(Telco_Customer_Churn$Churn, Telco_Customer_Churn$Contract)
+
+#VISUALIZATION
+library(ggplot2)
+library(RColorBrewer)
+
+#Histograms to show distribution of numeric variables
+#Monthly Charges by Internet Service Type
+ggplot(Telco_Customer_Churn, aes(x <- MonthlyCharges, fill = InternetService)) +
+  geom_histogram(binwidth = 5, position = "stack", color = "black") +
+  scale_fill_brewer(palette = "Paired") +
+  labs(title = "Distribution of Monthy Charges by Internet Service",
+       x = "Monthly Charges ($)", y = "Count") +
+  theme_light(base_size = 14)
+
+#Distribution of Tenure
+ggplot(Telco_Customer_Churn, aes(x <- tenure, fill = InternetService)) +
+  geom_histogram(binwidth = 5, position = "stack", color = "black") +
+  scale_fill_brewer(palette = "Paired") +
+  labs(title = "Distribution of Tenure",
+       x = "Tenure", y = "Count") +
+  theme_light(base_size = 14)
+
+
+ggplot(Telco_Customer_Churn, aes(x <- TotalCharges, fill = InternetService)) +
+  geom_histogram(binwidth = 20, position = "stack", color = "black") +
+  scale_fill_brewer(palette = "Paired") +
+  labs(title = "Distribution of Total Charges",
+       x = "Tenure", y = "Count") +
+  theme_light(base_size = 14)
+
+#Box plots to show spread of numeric variables and to detect out liers
+numeric_vars <- c("tenure", "MonthlyCharges", "Total Charges")
+
+#Loop all combinations to create boxplots
+for (num_var in numeric_vars) { #create plot
+    p <- ggplot(Telco_Customer_Churn, aes(x = factor(Churn), y = num_var, fill = "Churn")) +
+      geom_boxplot(outlier.colour = "red", outlier.size = 2) +
+      scale_fill_brewer(palette = "Paired") +
+      labs(title = paste("Boxplot of", num_var, "by Churn"),
+           x = "Churn", y = num_var) +
+      theme_minimal(base_size = 14)
+    print(p)
+}
+  
+
+#Bar plots to visualize distribution of categorical variables
+#Contract Lengths
+ggplot(Telco_Customer_Churn, aes(x <- Contract, fill = Contract)) + 
+  geom_bar(width = 1.0) +
+  scale_fill_brewer(palette = "Paired") +
+  labs(title = "Distribution of Contract Types",
+       x = "Contract Length", y = "Count") +
+  theme_minimal(base_size = 14)
+
+#visual of Internet service types
+ggplot(Telco_Customer_Churn, aes(x <- InternetService, fill = InternetService)) + 
+  geom_bar(width = 0.7) +
+  scale_fill_brewer(palette = "Paired") +
+  labs(title = "Distribution of Internet Service Types",
+       x = "Internet Service Type", y = "Count") +
+  theme_minimal(base_size = 14)
+
+#visualize gender by churn
+ggplot(Telco_Customer_Churn, aes(x <- gender, fill = gender)) + 
+  geom_bar(width = 1.0) +
+  scale_fill_brewer(palette = "Paired") +
+  labs(title = "Distribution of Gender",
+       x = "Gender", y = "Count") +
+  theme_minimal(base_size = 14)
+
+#visualize payment methods by churn
+ggplot(Telco_Customer_Churn, aes(x <- PaymentMethod, fill = PaymentMethod)) + 
+  geom_bar(width = 1.0) +
+  scale_fill_brewer(palette = "Paired") +
+  labs(title = "Distribution of Payment Methods",
+       x = "Payment Method", y = "Count") +
+  theme_minimal(base_size = 14)
+
+#Correlation Heatmap
+library(corrplot)
+
+#Correlation matrix of numeric variables
+corr_matrix <- cor(Telco_Customer_Churn %>% select(tenure, MonthlyCharges, TotalCharges), use = "complete.obs")
+#heatmap
+corrplot(corr_matrix, method = "color",
+         col = colorRampPalette(c("#FF4500", "#FFFFFF", "#1E90FF"))(200),
+         addCoef.col = "black",
+         tl.col = "darkblue",
+         tl.srt = 45)
+
+#INFERENTIAL STATISTICS
+t.test(MonthlyCharges ~ Churn, data <- Telco_Customer_Churn) #to compare means between monthly charges and churn rate.Hypothesis testing
+chisq.test(table(Telco_Customer_Churn$Churn, Telco_Customer_Churn$Contract)) # to test independence between churn and contract.
+t.test(Telco_Customer_Churn$tenure[Telco_Customer_Churn$Churn =="Yes"])$conf.int #to calculate a 95% confidence interval for the average tenure of churned customers.
+cor(Telco_Customer_Churn$MonthlyCharges, Telco_Customer_Churn$tenure, use = "complete.obs") #Correlation analysis to assess relationship between monthly charges and tenure.
+
+#Logistic regression: Modeling the probability of churn
+Telco_Customer_Churn$Churn <- as.numeric(Telco_Customer_Churn$Churn == "Yes")
+set.seed(123) #for reproducibility
+library(caret)
+#Split the data to training and test sets
+trainIndex <- createDataPartition(Telco_Customer_Churn$Churn, p = 0.7, list = FALSE)
+train_data <- Telco_Customer_Churn[trainIndex, ]
+test_data <- Telco_Customer_Churn[-trainIndex, ]
+
+
+logit_model <- glm(Churn ~ tenure + MonthlyCharges + Contract + InternetService, 
+                   data = train_data, family = binomial(link = "logit"))
+summary(logit_model)
+
+#Predict probabilities on test set
+test_data$Predicted_Prob <- predict(logit_model, newdata = test_data, type = "response")
+#Convert probabilities to binary
+test_data$Predicted_Churn <- ifelse(test_data$Predicted_Prob > 0.5, 1, 0)
+
+#EVALUATE ACCURACY
+#Confusion matrix
+ConfusionMatrix <- table(test_data$Predicted_Churn, test_data$Churn)
+
+#Calculate accuracy, recall, precision, and F1-score
+accuracy <- sum(diag(ConfusionMatrix)) / sum(ConfusionMatrix)
+precision <- ConfusionMatrix[2, 2] / sum(ConfusionMatrix[2, ])
+recall <- ConfusionMatrix[2, 2] / sum(ConfusionMatrix[ ,2])
+f1_score <- 2* (precision * recall) / (precision + recall)
+
+#ROC Curve and Area under the curve.
+library(pROC)
+roc_curve <- roc(test_data$Churn, test_data$Predicted_Prob)
+plot(roc_curve, main = "ROC Curve for Churn Prediction", col = "blue")
+auc(roc_curve)
+
+
+library(ggplot2) #to visualize glm
+ggplot(Telco_Customer_Churn, aes(x <- tenure, y <- Churn)) + geom_point() + 
+  stat_smooth(method = "glm", method.args = list(family = "binomial"))
+
+
+#SEGMENTATION AND PROFILING
+
+#to standardize the numeric variables
+library(magrittr)
+library(dplyr)
+Telco_Customer_Churn_scaled <- Telco_Customer_Churn %>% 
+  select(tenure, MonthlyCharges, TotalCharges) %>% 
+  mutate(across(everything(), scale))
+
+summary(Telco_Customer_Churn_scaled)
+is.na(Telco_Customer_Churn_scaled) #to identify any missing values in the scaled data
+na.omit(Telco_Customer_Churn_scaled)
+#re-scaling
+Telco_Customer_Churn_scaled <- Telco_Customer_Churn %>% 
+  select(tenure, MonthlyCharges, TotalCharges) %>% 
+  mutate(across(everything(), scale))
+Telco_Customer_Churn_scaled <- na.omit(Telco_Customer_Churn_scaled)
+summary(Telco_Customer_Churn_scaled)
+
+#choose number of Clusters
+set.seed(123) #for reproducibility
+wss <- sapply(1:10, function(k){
+  kmeans(Telco_Customer_Churn_scaled, centers = k, nstart = 20)$tot.withinss
+  })
+plot(1:10, wss, type = "b", pch = 19, xlab = "Number of Clusters", ylab = "Total WSS") #to determine the number of segments = k, where the rapid decrease starts flattening
+
+#Performing k-means clustering
+set.seed(123)
+kmeans_result <- kmeans(Telco_Customer_Churn_scaled, centers = 3, nstart = 20)
+Telco_Customer_Churn_scaled$Cluster <- as.factor(kmeans_result$cluster) #to group customers into 3 segments
+summary(Telco_Customer_Churn_scaled$Cluster) #Number of customers under each cluster
+
+#Profiling the segments
+Telco_Customer_Churn_clustered <- Telco_Customer_Churn %>%
+  mutate(Cluster = kmeans_result$cluster) %>%
+  mutate(Cluster = as.factor(Cluster))
+
+cluster_profile <- Telco_Customer_Churn_clustered %>% 
+  group_by(Cluster) %>%
+  summarize(tenure_mean = mean(tenure, na.rm = TRUE),
+            MonthlyCharges_mean = mean(MonthlyCharges, na.rm = TRUE),
+            TotalCharges_mean = mean(TotalCharges, na.rm = TRUE),
+            Churn_rate = mean(Churn =="Yes"))
+print(cluster_profile)
+
+
+#Cluster Visualization
+library(ggplot2)
+ggplot(Telco_Customer_Churn_clustered, aes(x = tenure, y = MonthlyCharges, color = Cluster)) + 
+  geom_point(size = 3, alpha = 0.7) + #large points that are a little transparent
+  scale_color_brewer(palette = "Paired") + 
+  labs(title = "Customer Segmentation by Tenure and Monthly Charges",
+       x = "Tenure(Months", y = "Monthly Charges ($)") + 
+  theme_minimal(base_size = 15)
+
+#Box plots for cluster profiles
+library(ggplot2)
+ggplot(Telco_Customer_Churn_clustered, aes(x = Cluster, y = MonthlyCharges, fill = Cluster)) + 
+  geom_boxplot(outlier.colour = "red", outlier.size = 2) + #to make the outliers pop out
+  scale_fill_brewer(palette = "Paired") + 
+  labs(title = "Monthly Charges Across Customer Segments",
+       x = "Cluster", y = "Monthly Charges ($)") +
+  theme_light(base_size = 14)
+
+#Bar plot for churn rates by cluster
+ggplot(cluster_profile, aes(x = Cluster, y = Churn_rate, fill = Cluster)) +
+  geom_bar(stat = "identity", color = "black", width = 0.7) +
+  scale_fill_brewer(palette = "Paired") +
+  geom_text(aes(label = scales::percent(Churn_rate)), vjust = -0.5, size = 5) +
+  labs(title = "Churn Rate by Customer Segment",
+       x = "Cluster", y = "Churn Rate") +
+  theme_classic(base_size = 14)
+
+
+```
+
